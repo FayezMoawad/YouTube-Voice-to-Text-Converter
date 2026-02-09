@@ -2,14 +2,15 @@ import streamlit as st
 import time
 from pathlib import Path
 import sys
-from app.utils.config import TEMP_DIR
 
 # Add root to path so we can import app modules
+# This MUST happen before importing app.utils.config
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
-st.set_page_config(page_title="YouTube Voice-to-Text", page_icon="🎙️", layout="centered")
-
+from app.utils.config import TEMP_DIR
 from app.core.orchestrator import Orchestrator
+
+st.set_page_config(page_title="YouTube Voice-to-Text", page_icon="🎙️", layout="centered")
 
 # Initialize Orchestrator in Session State to persist across reruns
 if 'orchestrator_v5' not in st.session_state:
