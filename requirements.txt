@@ -6,6 +6,3 @@ ffmpeg-python
 pydantic
 watchdog
 python-dotenv
-openai-whisper
-torch
-numpy
