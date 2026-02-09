@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 class IngestionAgent:
     def __init__(self):
         self.ydl_opts = {
-            'format': 'bestaudio/best',
+            # 'bestaudio/best' fails with Android client sometimes, so we use 'best' and let ffmpeg extract audio
+            'format': 'best',
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
