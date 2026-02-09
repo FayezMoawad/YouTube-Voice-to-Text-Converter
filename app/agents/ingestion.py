@@ -19,12 +19,30 @@ class IngestionAgent:
             'outtmpl': str(TEMP_DIR / '%(id)s.%(ext)s'),
             'quiet': True,
             'no_warnings': True,
+            # Stealth headers to mimic a browser
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'referer': 'https://www.youtube.com/',
         }
 
     def get_metadata(self, url: str, cookie_file: Path = None) -> VideoMetadata:
         try:
-            opts = {'quiet': True}
+            opts = {
+                'quiet': True,
+                'user_agent': self.ydl_opts['user_agent'],
+                'referer': self.ydl_opts['referer']
+            }
+            
             if cookie_file and cookie_file.exists():
+                logger.info(f"Using cookie file at: {cookie_file}")
+                # Basic validation: check if it looks like a Netscape cookie file
+                try:
+                    with open(cookie_file, 'r') as f:
+                        header = f.readline()
+                        if not header.startswith("# Netscape") and not header.startswith("# HTTP Cookie"):
+                            logger.warning(f"Cookie file {cookie_file} does not look like a Netscape format file. Header: {header.strip()}")
+                except Exception as ex:
+                    logger.warning(f"Could not read cookie file to validate header: {ex}")
+                    
                 opts['cookiefile'] = str(cookie_file)
                 
             with yt_dlp.YoutubeDL(opts) as ydl:
