@@ -19,6 +19,8 @@ class IngestionAgent:
             'outtmpl': str(TEMP_DIR / '%(id)s.%(ext)s'),
             'quiet': True,
             'no_warnings': True,
+            # 'Web' client is blocked (only images), so we use 'android' to see video streams
+            'extractor_args': {'youtube': {'player_client': ['android']}},
         }
 
     def get_metadata(self, url: str, cookie_file: Path = None) -> VideoMetadata:
