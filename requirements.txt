@@ -1,0 +1,11 @@
+streamlit
+yt-dlp
+faster-whisper
+python-docx
+ffmpeg-python
+pydantic
+watchdog
+python-dotenv
+openai-whisper
+torch
+numpy
