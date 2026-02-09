@@ -16,12 +16,12 @@ class Orchestrator:
         self.transcription = TranscriptionAgent() # Model loads here
         self.formatting = FormattingAgent()
 
-    def start_job(self, url: str, language: str = None, model_size: str = "medium", include_timestamps: bool = True, include_speakers: bool = True) -> str:
+    def start_job(self, url: str, language: str = None, model_size: str = "medium", include_timestamps: bool = True, include_speakers: bool = True, cookies_path: str = None) -> str:
         job_id = str(uuid.uuid4())
         self.jobs[job_id] = JobStatus(job_id=job_id, status="initialized")
         
         # Start processing in a background thread
-        thread = threading.Thread(target=self._process_job, args=(job_id, url, language, model_size, include_timestamps, include_speakers))
+        thread = threading.Thread(target=self._process_job, args=(job_id, url, language, model_size, include_timestamps, include_speakers, cookies_path))
         thread.start()
         
         return job_id
@@ -29,7 +29,7 @@ class Orchestrator:
     def get_job_status(self, job_id: str) -> JobStatus:
         return self.jobs.get(job_id)
 
-    def _process_job(self, job_id: str, url: str, language: str, model_size: str, include_timestamps: bool, include_speakers: bool):
+    def _process_job(self, job_id: str, url: str, language: str, model_size: str, include_timestamps: bool, include_speakers: bool, cookies_path: str = None):
         job = self.jobs[job_id]
         try:
             # 1. Ingestion
@@ -38,11 +38,14 @@ class Orchestrator:
             job.progress_percent = 10
             logger.info(f"Job {job_id}: Fetching audio from {url}")
             
+            # Convert cookies_path to Path object if it exists
+            cookie_file = Path(cookies_path) if cookies_path else None
+            
             # Get metadata first
-            metadata: VideoMetadata = self.ingestion.get_metadata(url)
+            metadata: VideoMetadata = self.ingestion.get_metadata(url, cookie_file=cookie_file)
             
             # Download audio
-            audio_path = self.ingestion.download_audio(url)
+            audio_path = self.ingestion.download_audio(url, cookie_file=cookie_file)
             job.progress_percent = 30
             
             # 2. Transcription

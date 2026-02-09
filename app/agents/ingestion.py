@@ -21,9 +21,13 @@ class IngestionAgent:
             'no_warnings': True,
         }
 
-    def get_metadata(self, url: str) -> VideoMetadata:
+    def get_metadata(self, url: str, cookie_file: Path = None) -> VideoMetadata:
         try:
-            with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+            opts = {'quiet': True}
+            if cookie_file and cookie_file.exists():
+                opts['cookiefile'] = str(cookie_file)
+                
+            with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 return VideoMetadata(
                     title=info.get('title', 'Unknown'),
@@ -36,14 +40,21 @@ class IngestionAgent:
             logger.error(f"Error fetching metadata: {e}")
             raise
 
-    def download_audio(self, url: str) -> Path:
-        metadata = self.get_metadata(url)
+    def download_audio(self, url: str, cookie_file: Path = None) -> Path:
+        # We pass cookie_file to get_metadata if needed, though usually metadata doesn't require it as strictly as download
+        # But for 403s, even metadata might fail, so let's pass it.
+        metadata = self.get_metadata(url, cookie_file=cookie_file)
         
         if metadata.duration > MAX_VIDEO_DURATION_SECONDS:
             raise ValueError(f"Video duration ({metadata.duration}s) exceeds limit ({MAX_VIDEO_DURATION_SECONDS}s)")
 
         try:
-            with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
+            # Create a localized copy of options to add cookiefile
+            opts = self.ydl_opts.copy()
+            if cookie_file and cookie_file.exists():
+                opts['cookiefile'] = str(cookie_file)
+
+            with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=True)
                 video_id = info['id']
                 # yt-dlp might save as .mp3 directly depending on postprocessor
@@ -53,8 +64,14 @@ class IngestionAgent:
                 if expected_path.exists():
                     return expected_path
                 else:
-                     # Fallback check if it was saved with different extension before conversion?
-                     # With FFmpegExtractAudio, it usually ends up as .mp3
+                     # Check if it was saved as webm or m4a before conversion (unlikely with just extract audio but possible)
+                     # For now, strict check on mp3 as per config
+                     if not expected_path.exists():
+                         # Try finding any file with that ID in temp
+                         potential_files = list(TEMP_DIR.glob(f"{video_id}.*"))
+                         if potential_files:
+                             return potential_files[0]
+                     
                      raise FileNotFoundError(f"Downloaded file not found at {expected_path}")
         except Exception as e:
             logger.error(f"Error downloading audio: {e}")

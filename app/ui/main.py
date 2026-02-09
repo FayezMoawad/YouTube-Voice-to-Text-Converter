@@ -2,6 +2,7 @@ import streamlit as st
 import time
 from pathlib import Path
 import sys
+from app.utils.config import TEMP_DIR
 
 # Add root to path so we can import app modules
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
@@ -11,11 +12,11 @@ st.set_page_config(page_title="YouTube Voice-to-Text", page_icon="🎙️", layo
 from app.core.orchestrator import Orchestrator
 
 # Initialize Orchestrator in Session State to persist across reruns
-if 'orchestrator_v4' not in st.session_state:
+if 'orchestrator_v5' not in st.session_state:
     with st.spinner("Initializing AI Models... (This may take a moment)"):
-        st.session_state.orchestrator_v4 = Orchestrator()
+        st.session_state.orchestrator_v5 = Orchestrator()
 
-orchestrator = st.session_state.orchestrator_v4
+orchestrator = st.session_state.orchestrator_v5
 
 
 st.header("🎙️ YouTube Voice-to-Text Converter")
@@ -37,13 +38,34 @@ with st.form("job_form"):
     with col_opt2:
         include_speakers = st.checkbox("Include Speaker Labels", value=True)
     
+    # Advanced Options for Cookies
+    with st.expander("Advanced Options (Fix 403 Forbidden Error)"):
+        st.markdown("Upload a `cookies.txt` file if you encounter valid YouTube URL errors (403 Forbidden).")
+        uploaded_cookies = st.file_uploader("Upload cookies.txt", type=["txt"], help="Use an extension like 'Get cookies.txt LOCALLY' to export your YouTube cookies.")
+
     submitted = st.form_submit_button("Start Transcription")
 
 if submitted and url:
     if "youtube.com" not in url and "youtu.be" not in url:
         st.error("Please enter a valid YouTube URL.")
     else:
-        job_id = orchestrator.start_job(url, language, model_size, include_timestamps, include_speakers)
+        # Handle Cookies
+        cookies_path = None
+        if uploaded_cookies is not None:
+             cookies_path = TEMP_DIR / "user_cookies.txt"
+             # Save uploaded file
+             with open(cookies_path, "wb") as f:
+                 f.write(uploaded_cookies.getbuffer())
+        
+        # Start Job
+        job_id = orchestrator.start_job(
+            url, 
+            language, 
+            model_size, 
+            include_timestamps, 
+            include_speakers,
+            cookies_path=str(cookies_path) if cookies_path else None
+        )
         st.session_state.current_job_id = job_id
         st.success(f"Job started! ID: {job_id}")
 
