@@ -19,18 +19,13 @@ class IngestionAgent:
             'outtmpl': str(TEMP_DIR / '%(id)s.%(ext)s'),
             'quiet': True,
             'no_warnings': True,
-            # Stealth headers to mimic a browser
-            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'referer': 'https://www.youtube.com/',
+            # Use Android client to bypass some 403s
+            'extractor_args': {'youtube': {'player_client': ['android', 'ios']}},
         }
 
     def get_metadata(self, url: str, cookie_file: Path = None) -> VideoMetadata:
         try:
-            opts = {
-                'quiet': True,
-                'user_agent': self.ydl_opts['user_agent'],
-                'referer': self.ydl_opts['referer']
-            }
+            opts = {'quiet': True}
             
             if cookie_file and cookie_file.exists():
                 logger.info(f"Using cookie file at: {cookie_file}")
