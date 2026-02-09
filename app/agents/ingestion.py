@@ -10,8 +10,7 @@ logger = logging.getLogger(__name__)
 class IngestionAgent:
     def __init__(self):
         self.ydl_opts = {
-            # 'bestaudio/best' fails with Android client sometimes, so we use 'best' and let ffmpeg extract audio
-            'format': 'best',
+            'format': 'bestaudio/best',
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
@@ -20,8 +19,6 @@ class IngestionAgent:
             'outtmpl': str(TEMP_DIR / '%(id)s.%(ext)s'),
             'quiet': True,
             'no_warnings': True,
-            # Use Android client to bypass some 403s
-            'extractor_args': {'youtube': {'player_client': ['android', 'ios']}},
         }
 
     def get_metadata(self, url: str, cookie_file: Path = None) -> VideoMetadata:
